@@ -1,15 +1,8 @@
 import plotly.graph_objects as go
 
-def creer_droite_reels(points, val_ref, min_sub= -10, max_sub=10, step_sub=1, ref_pos=2):
+def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref_pos=2):
     """
-    Génère une droite des réels style manuel scolaire.
-    
-    Parameters:
-    - points: dict avec les lettres et leur graduation, ex: {"A": 1, "B": 5, "C": -3, "D": -5}
-    - val_ref: tuple (position_grad, texte), ex: (2, "100") ou (2, "0,1")
-    - min_sub, max_sub: bornes de la droite (en nombre de graduations)
-    - step_sub: pas des graduations
-    - ref_pos: position de la graduation de référence (ex: 2ème graduation après 0)
+    Génère une droite des réels interactive et zoomable pour mobile.
     """
     fig = go.Figure()
 
@@ -45,34 +38,32 @@ def creer_droite_reels(points, val_ref, min_sub= -10, max_sub=10, step_sub=1, re
 
     # 4. Points à placer (Traits rouges + Lettres au-dessus)
     for lettre, pos in points.items():
-        # Trait rouge vertical coupant la droite
         fig.add_shape(
             type="line",
             x0=pos, y0=-0.25, x1=pos, y1=0.25,
             line=dict(color="#E63946", width=3)
         )
-        # Lettre au-dessus
         fig.add_annotation(
             x=pos, y=0.45, text=f"<i><b>{lettre}</b></i>",
             showarrow=False, font=dict(size=16, color="#E63946")
         )
 
-    # Configuration de la mise en page (lisible en Dark & Light mode)
+    # Configuration du zoom tactile
     fig.update_layout(
-        dragmode='pan',
-        height=180,
+        height=200,
         margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
+        dragmode="pan",  # Permet de faire glisser la droite au doigt
         xaxis=dict(
             visible=False,
             range=[min_sub - 1, max_sub + 1.5],
-            fixedrange=True
+            fixedrange=False  # ✅ AUTORISE LE ZOOM / DEPLACEMENT SUR X
         ),
         yaxis=dict(
             visible=False,
             range=[-0.8, 0.8],
-            fixedrange=True
+            fixedrange=True  # Bloque l'axe Y pour ne pas déformer la droite en hauteur
         )
     )
 

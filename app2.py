@@ -7,12 +7,22 @@ from droitereel import creer_droite_reels
 st.set_page_config(page_title="Évaluation - Droite des Réels", layout="wide")
 
 # ---------------------------------------------------------
-# CHARGEMENT DU FICHIER JSON
+# CHARGEMENT ET SÉCURISATION DU FICHIER JSON
 # ---------------------------------------------------------
 @st.cache_data
 def load_questions():
-    with open("questions.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open("questions.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Ne conserve que les exercices valides avec les bonnes clés
+            valid_ex = []
+            for ex in data:
+                if "points_pos" in ex and "val_ref" in ex and "reponses_exactes" in ex:
+                    valid_ex.append(ex)
+            return valid_ex
+    except Exception as e:
+        st.error(f"Erreur de lecture du fichier questions.json : {e}")
+        return []
 
 EXERCICES = load_questions()
 
@@ -63,31 +73,33 @@ if mode == "Smartphone Élève":
             user_res = db["responses"][already_submitted]
             
             for i, ex in enumerate(EXERCICES):
-                st.markdown(f"### Exercice {ex['id']}")
+                st.markdown(f"### Exercice {ex.get('id', i+1)}")
+                
                 fig = creer_droite_reels(
-                    points=ex["points_pos"], 
-                    val_ref=ex["val_ref"], 
+                    points=ex.get("points_pos", {}), 
+                    val_ref=ex.get("val_ref", "1"), 
                     ref_pos=ex.get("ref_pos", 2)
                 )
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 
                 resp_eleve = user_res.get(i, {})
-                exactes = ex["reponses_exactes"]
+                exactes = ex.get("reponses_exactes", {})
                 
-                cols = st.columns(len(exactes))
-                for idx, (lettre, vrai) in enumerate(exactes.items()):
-                    val_eleve = resp_eleve.get(lettre, 0.0)
-                    ecart = abs(val_eleve - vrai)
-                    
-                    # Attribution des points : 25 pts par bonne réponse
-                    pts = 25 if ecart < 1e-4 else 0
-                    
-                    with cols[idx]:
-                        st.metric(f"Point {lettre}", f"{val_eleve}", delta=f"Vrai: {vrai}")
-                        if pts > 0:
-                            st.caption("✅ Correct (+25 pts)")
-                        else:
-                            st.caption("❌ Incorrect (0 pt)")
+                if exactes:
+                    cols = st.columns(len(exactes))
+                    for idx, (lettre, vrai) in enumerate(exactes.items()):
+                        val_eleve = resp_eleve.get(lettre, 0.0)
+                        ecart = abs(val_eleve - vrai)
+                        
+                        # Attribution de 25 points par bonne réponse (tolérance légère pour arrondis)
+                        pts = 25 if ecart < 1e-4 else 0
+                        
+                        with cols[idx]:
+                            st.metric(f"Point {lettre}", f"{val_eleve}", delta=f"Vrai: {vrai}")
+                            if pts > 0:
+                                st.caption("✅ Correct (+25 pts)")
+                            else:
+                                st.caption("❌ Incorrect (0 pt)")
                 st.divider()
         else:
             st.info("La correction est affichée au tableau.")
@@ -100,61 +112,66 @@ if mode == "Smartphone Élève":
 
     # CAS 3 : FORMULAIRE DE SAISIE
     else:
-        pseudo = st.text_input("Entrez votre Prénom :", key="user_pseudo")
-        
-        if pseudo:
-            pseudo_clean = pseudo.strip()
+        if not EXERCICES:
+            st.warning("⚠️ Aucune question chargée. Vérifiez le fichier questions.json.")
+        else:
+            pseudo = st.text_input("Entrez votre Prénom :", key="user_pseudo")
             
-            if pseudo_clean in db["scores"]:
-                st.warning(f"⚠️ Le prénom **{pseudo_clean}** a déjà envoyé ses réponses.")
-            else:
-                st.subheader(f"Bonjour {pseudo_clean} !")
+            if pseudo:
+                pseudo_clean = pseudo.strip()
                 
-                user_answers = {}
-                
-                for i, ex in enumerate(EXERCICES):
-                    st.markdown(f"### Exercice {ex['id']}")
+                if pseudo_clean in db["scores"]:
+                    st.warning(f"⚠️ Le prénom **{pseudo_clean}** a déjà envoyé ses réponses.")
+                else:
+                    st.subheader(f"Bonjour {pseudo_clean} !")
                     
-                    fig = creer_droite_reels(
-                        points=ex["points_pos"], 
-                        val_ref=ex["val_ref"], 
-                        ref_pos=ex.get("ref_pos", 2)
-                    )
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                    
-                    # Saisie des réponses par l'élève
-                    answers_ex = {}
-                    cols = st.columns(len(ex["points_pos"]))
-
-                    for idx_p, (lettre, pos) in enumerate(ex["points_pos"].items()):
-                        with cols[idx_p]:
-                            val = st.number_input(
-                                f"Point {lettre} :",
-                                value=0.0,
-                                step=0.001,
-                                format="%g",
-                                key=f"ex_{i}_p_{lettre}"
-                            )
-                            answers_ex[lettre] = val
-                    
-                    user_answers[i] = answers_ex
-                    st.divider()
-                
-                if st.button("Envoyer mes réponses 🚀", type="primary"):
-                    score_total = 0
+                    user_answers = {}
                     
                     for i, ex in enumerate(EXERCICES):
-                        exactes = ex["reponses_exactes"]
-                        for lettre, vrai in exactes.items():
-                            est = user_answers[i].get(lettre, 0.0)
-                            ecart = abs(est - vrai)
-                            if ecart < 1e-4:
-                                score_total += 25
+                        st.markdown(f"### Exercice {ex.get('id', i+1)}")
+                        
+                        fig = creer_droite_reels(
+                            points=ex.get("points_pos", {}), 
+                            val_ref=ex.get("val_ref", "1"), 
+                            ref_pos=ex.get("ref_pos", 2)
+                        )
+                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                        
+                        # Saisie des réponses par l'élève
+                        answers_ex = {}
+                        points_pos = ex.get("points_pos", {})
+                        
+                        if points_pos:
+                            cols = st.columns(len(points_pos))
+                            for idx_p, (lettre, pos) in enumerate(points_pos.items()):
+                                with cols[idx_p]:
+                                    val = st.number_input(
+                                        f"Point {lettre} :",
+                                        value=0.0,
+                                        step=0.001,
+                                        format="%g",
+                                        key=f"ex_{i}_p_{lettre}"
+                                    )
+                                    answers_ex[lettre] = val
+                        
+                        user_answers[i] = answers_ex
+                        st.divider()
                     
-                    db["scores"][pseudo_clean] = score_total
-                    db["responses"][pseudo_clean] = user_answers
-                    st.session_state.submitted_pseudo = pseudo_clean
-                    st.rerun()
+                    if st.button("Envoyer mes réponses 🚀", type="primary"):
+                        score_total = 0
+                        
+                        for i, ex in enumerate(EXERCICES):
+                            exactes = ex.get("reponses_exactes", {})
+                            for lettre, vrai in exactes.items():
+                                est = user_answers[i].get(lettre, 0.0)
+                                ecart = abs(est - vrai)
+                                if ecart < 1e-4:
+                                    score_total += 25
+                        
+                        db["scores"][pseudo_clean] = score_total
+                        db["responses"][pseudo_clean] = user_answers
+                        st.session_state.submitted_pseudo = pseudo_clean
+                        st.rerun()
 
 # ---------------------------------------------------------
 # MODE 2 : ÉCRAN PROJETÉ (VIDÉOPROJECTEUR)
@@ -193,10 +210,10 @@ else:
         st.divider()
         st.subheader("📊 Correction générale")
         for i, ex in enumerate(EXERCICES):
-            st.markdown(f"#### Exercice {ex['id']}")
+            st.markdown(f"#### Exercice {ex.get('id', i+1)}")
             fig = creer_droite_reels(
-                points=ex["points_pos"], 
-                val_ref=ex["val_ref"], 
+                points=ex.get("points_pos", {}), 
+                val_ref=ex.get("val_ref", "1"), 
                 ref_pos=ex.get("ref_pos", 2)
             )
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})

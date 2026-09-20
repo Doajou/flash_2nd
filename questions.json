@@ -1,57 +1,30 @@
 [
   {
-    "id": 1,
-    "titre": "Exercice 1 : Échelle standard",
-    "min_x": -10,
-    "max_x": 10,
-    "step_grad": 1,
-    "points": [
-      {"nom": "A", "valeur_vraie": -3.5},
-      {"nom": "B", "valeur_vraie": 4.2}
-    ]
+    "id": 47,
+    "val_ref": "100",
+    "ref_pos": 2,
+    "points_pos": {"A": 1, "B": 5, "C": -3, "D": -5},
+    "reponses_exactes": {"A": 50, "B": 250, "C": -150, "D": -250}
   },
   {
-    "id": 2,
-    "titre": "Exercice 2 : Échelle décimale fine",
-    "min_x": 0,
-    "max_x": 2,
-    "step_grad": 0.1,
-    "points": [
-      {"nom": "C", "valeur_vraie": 0.35},
-      {"nom": "D", "valeur_vraie": 1.48}
-    ]
+    "id": 47,
+    "val_ref": "100",
+    "ref_pos": 2,
+    "points_pos": {"A": 1, "B": 5, "C": -3, "D": -5},
+    "reponses_exactes": {"A": 50, "B": 250, "C": -150, "D": -250}
   },
   {
-    "id": 3,
-    "titre": "Exercice 3 : Grands nombres",
-    "min_x": -500,
-    "max_x": 500,
-    "step_grad": 50,
-    "points": [
-      {"nom": "E", "valeur_vraie": -125},
-      {"nom": "F", "valeur_vraie": 375}
-    ]
+    "id": 47,
+    "val_ref": "100",
+    "ref_pos": 2,
+    "points_pos": {"A": 1, "B": 5, "C": -3, "D": -5},
+    "reponses_exactes": {"A": 50, "B": 250, "C": -150, "D": -250}
   },
   {
-    "id": 4,
-    "titre": "Exercice 4 : Zoom négatif",
-    "min_x": -1,
-    "max_x": 0,
-    "step_grad": 0.1,
-    "points": [
-      {"nom": "G", "valeur_vraie": -0.85},
-      {"nom": "H", "valeur_vraie": -0.12}
-    ]
-  },
-  {
-    "id": 5,
-    "titre": "Exercice 5 : Échelle mixte",
-    "min_x": -20,
-    "max_x": 30,
-    "step_grad": 5,
-    "points": [
-      {"nom": "I", "valeur_vraie": -7.5},
-      {"nom": "J", "valeur_vraie": 22.5}
-    ]
+    "id": 47,
+    "val_ref": "100",
+    "ref_pos": 2,
+    "points_pos": {"A": 1, "B": 5, "C": -3, "D": -5},
+    "reponses_exactes": {"A": 50, "B": 250, "C": -150, "D": -250}
   }
 ]

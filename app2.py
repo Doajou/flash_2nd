@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import plotly.graph_objects as go
+from droitereel import creer_droite_reels
 
 # Configuration de la page
 st.set_page_config(page_title="Évaluation - Droite des Réels", layout="wide")
@@ -115,8 +116,12 @@ if mode == "Smartphone Élève":
             
             for i, ex in enumerate(EXERCICES):
                 st.markdown(f"### {ex['titre']}")
-                fig, config = tracer_droite_reels(ex)
-                st.plotly_chart(fig, config=config, use_container_width=True)
+                fig = creer_droite_reels(
+                    points=ex["points_pos"], 
+                    val_ref=ex["val_ref"], 
+                    ref_pos=ex.get("ref_pos", 2)
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 
                 resp_eleve = user_res.get(i, [])
                 for idx_p, p in enumerate(ex["points"]):

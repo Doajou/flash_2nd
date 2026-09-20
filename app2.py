@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import json
-import plotly.graph_objects as go
 from droitereel import creer_droite_reels
 
 # Configuration de la page
@@ -17,57 +16,6 @@ def load_questions():
 
 EXERCICES = load_questions()
 
-# Fonction pour générer une droite des réels interactive (zoomable)
-def tracer_droite_reels(exercice):
-    min_x = exercice["min_x"]
-    max_x = exercice["max_x"]
-    
-    fig = go.Figure()
-    
-    # Axe principal
-    fig.add_shape(
-        type="line",
-        x0=min_x, y0=0, x1=max_x, y1=0,
-        line=dict(color="black", width=3)
-    )
-    
-    # Placement des points à trouver
-    couleurs = ["#FF4B4B", "#1F77B4"]
-    for idx, p in enumerate(exercice["points"]):
-        c = couleurs[idx % len(couleurs)]
-        fig.add_trace(go.Scatter(
-            x=[p["valeur_vraie"]],
-            y=[0],
-            mode="markers+text",
-            name=f"Point {p['nom']}",
-            text=[f"<b>{p['nom']}</b>"],
-            textposition="top center",
-            marker=dict(size=14, color=c, symbol="diamond"),
-            hoverinfo="text",
-            hovertext=f"Point {p['nom']}"
-        ))
-        
-    fig.update_layout(
-        height=200,
-        margin=dict(l=20, r=20, t=30, b=20),
-        xaxis=dict(
-            range=[min_x - (max_x - min_x)*0.05, max_x + (max_x - min_x)*0.05],
-            dtick=exercice["step_grad"],
-            zeroline=True,
-            zerolinecolor="black",
-            zerolinewidth=2,
-            showgrid=True,
-            gridcolor="lightgrey"
-        ),
-        yaxis=dict(showticklabels=False, showgrid=False, range=[-1, 1], fixedrange=True),
-        showlegend=False,
-        dragmode="pan"  # Permet le déplacement latéral au doigt/souris
-    )
-    
-    # Configuration du zoom pour mobiles
-    config = {'scrollZoom': True, 'displayModeBar': False}
-    return fig, config
-
 # ---------------------------------------------------------
 # STOCKAGE CENTRALISÉ
 # ---------------------------------------------------------
@@ -75,7 +23,7 @@ def tracer_droite_reels(exercice):
 def get_global_database():
     return {
         "scores": {},        # {pseudo: score_total}
-        "responses": {},     # {pseudo: {ex_idx: [val1, val2]}}
+        "responses": {},     # {pseudo: {ex_idx: {lettre: valeur}}}
         "show_correction": False
     }
 
@@ -109,13 +57,13 @@ if mode == "Smartphone Élève":
         
         if already_submitted and already_submitted in db["responses"]:
             score_eleve = db["scores"][already_submitted]
-            st.success(f"Score total pour **{already_submitted}** : **{score_eleve} pts / 1000**")
+            st.success(f"Score total pour **{already_submitted}** : **{score_eleve} pts**")
             st.divider()
             
             user_res = db["responses"][already_submitted]
             
             for i, ex in enumerate(EXERCICES):
-                st.markdown(f"### {ex['titre']}")
+                st.markdown(f"### Exercice {ex['id']}")
                 fig = creer_droite_reels(
                     points=ex["points_pos"], 
                     val_ref=ex["val_ref"], 
@@ -123,20 +71,23 @@ if mode == "Smartphone Élève":
                 )
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 
-                resp_eleve = user_res.get(i, [])
-                for idx_p, p in enumerate(ex["points"]):
-                    val_eleve = resp_eleve[idx_p] if idx_p < len(resp_eleve) else 0.0
-                    vrai = p["valeur_vraie"]
+                resp_eleve = user_res.get(i, {})
+                exactes = ex["reponses_exactes"]
+                
+                cols = st.columns(len(exactes))
+                for idx, (lettre, vrai) in enumerate(exactes.items()):
+                    val_eleve = resp_eleve.get(lettre, 0.0)
                     ecart = abs(val_eleve - vrai)
                     
-                    # Tolérance relative selon la taille de l'intervalle
-                    amplitude = ex["max_x"] - ex["min_x"]
-                    pts = max(0, int(round(100 * max(0, 1 - (ecart / (amplitude * 0.1))))))
+                    # Attribution des points : 25 pts par bonne réponse
+                    pts = 25 if ecart < 1e-4 else 0
                     
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric(f"Votre valeur pour {p['nom']}", f"{val_eleve:.2f}")
-                    col2.metric(f"Vraie valeur {p['nom']}", f"{vrai:.2f}")
-                    col3.metric("Points", f"+{pts} pts")
+                    with cols[idx]:
+                        st.metric(f"Point {lettre}", f"{val_eleve}", delta=f"Vrai: {vrai}")
+                        if pts > 0:
+                            st.caption("✅ Correct (+25 pts)")
+                        else:
+                            st.caption("❌ Incorrect (0 pt)")
                 st.divider()
         else:
             st.info("La correction est affichée au tableau.")
@@ -144,7 +95,7 @@ if mode == "Smartphone Élève":
     # CAS 2 : ÉLÈVE EN ATTENTE DE CORRECTION
     elif already_submitted and already_submitted in db["scores"]:
         st.success(f"✅ Réponses enregistrées pour **{already_submitted}** !")
-        st.info(f"Votre score actuel : **{db['scores'][already_submitted]} pts / 1000**.")
+        st.info(f"Votre score actuel : **{db['scores'][already_submitted]} pts**.")
         waiting_screen_fragment()
 
     # CAS 3 : FORMULAIRE DE SAISIE
@@ -158,28 +109,33 @@ if mode == "Smartphone Élève":
                 st.warning(f"⚠️ Le prénom **{pseudo_clean}** a déjà envoyé ses réponses.")
             else:
                 st.subheader(f"Bonjour {pseudo_clean} !")
-                st.caption("💡 Astuce : Vous pouvez zoomer et faire glisser la droite des réels avec vos doigts.")
                 
                 user_answers = {}
                 
                 for i, ex in enumerate(EXERCICES):
-                    st.markdown(f"### {ex['titre']}")
+                    st.markdown(f"### Exercice {ex['id']}")
                     
-                    fig, config = tracer_droite_reels(ex)
-                    st.plotly_chart(fig, config=config, use_container_width=True)
+                    fig = creer_droite_reels(
+                        points=ex["points_pos"], 
+                        val_ref=ex["val_ref"], 
+                        ref_pos=ex.get("ref_pos", 2)
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                     
-                    answers_ex = []
-                    cols = st.columns(len(ex["points"]))
-                    for idx_p, p in enumerate(ex["points"]):
+                    # Saisie des réponses par l'élève
+                    answers_ex = {}
+                    cols = st.columns(len(ex["points_pos"]))
+
+                    for idx_p, (lettre, pos) in enumerate(ex["points_pos"].items()):
                         with cols[idx_p]:
                             val = st.number_input(
-                                f"Valeur du point {p['nom']} :",
+                                f"Point {lettre} :",
                                 value=0.0,
-                                step=ex["step_grad"] / 10,
-                                format="%.2f",
-                                key=f"ex_{i}_p_{idx_p}"
+                                step=0.001,
+                                format="%g",
+                                key=f"ex_{i}_p_{lettre}"
                             )
-                            answers_ex.append(val)
+                            answers_ex[lettre] = val
                     
                     user_answers[i] = answers_ex
                     st.divider()
@@ -188,14 +144,12 @@ if mode == "Smartphone Élève":
                     score_total = 0
                     
                     for i, ex in enumerate(EXERCICES):
-                        amplitude = ex["max_x"] - ex["min_x"]
-                        for idx_p, p in enumerate(ex["points"]):
-                            est = user_answers[i][idx_p]
-                            vrai = p["valeur_vraie"]
+                        exactes = ex["reponses_exactes"]
+                        for lettre, vrai in exactes.items():
+                            est = user_answers[i].get(lettre, 0.0)
                             ecart = abs(est - vrai)
-                            # Calcul de points proportionnel à la précision requise
-                            pts = max(0, int(round(100 * max(0, 1 - (ecart / (amplitude * 0.1))))))
-                            score_total += pts
+                            if ecart < 1e-4:
+                                score_total += 25
                     
                     db["scores"][pseudo_clean] = score_total
                     db["responses"][pseudo_clean] = user_answers
@@ -211,9 +165,9 @@ else:
     if db["scores"]:
         df = pd.DataFrame(
             list(db["scores"].items()), 
-            columns=["Élève", "Score Total (/1000)"]
+            columns=["Élève", "Score Total"]
         )
-        df = df.sort_values(by="Score Total (/1000)", ascending=False).reset_index(drop=True)
+        df = df.sort_values(by="Score Total", ascending=False).reset_index(drop=True)
         df.index += 1
         st.dataframe(df, use_container_width=True, height=300)
     else:
@@ -239,6 +193,10 @@ else:
         st.divider()
         st.subheader("📊 Correction générale")
         for i, ex in enumerate(EXERCICES):
-            st.markdown(f"#### {ex['titre']}")
-            fig, config = tracer_droite_reels(ex)
-            st.plotly_chart(fig, config=config, use_container_width=True)
+            st.markdown(f"#### Exercice {ex['id']}")
+            fig = creer_droite_reels(
+                points=ex["points_pos"], 
+                val_ref=ex["val_ref"], 
+                ref_pos=ex.get("ref_pos", 2)
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})

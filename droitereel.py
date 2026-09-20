@@ -59,6 +59,7 @@ def creer_droite_reels(points, val_ref, min_sub= -10, max_sub=10, step_sub=1, re
 
     # Configuration de la mise en page (lisible en Dark & Light mode)
     fig.update_layout(
+        dragmode='pan',
         height=180,
         margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",

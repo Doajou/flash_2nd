@@ -1,23 +1,37 @@
 [
   {
-    "id": 47,
+    "id": 1,
     "val_ref": "100",
-    "ref_pos": 2,
-    "points_pos": {"A": 1, "B": 5, "C": -3, "D": -5},
-    "reponses_exactes": {"A": 50, "B": 250, "C": -150, "D": -250}
+    "ref_pos": 4,
+    "points_pos": {"A": -1, "B": 7},
+    "reponses_exactes": {"A": -25, "B": 175}
   },
   {
-    "id": 48,
+    "id": 2,
+    "val_ref": "20",
+    "ref_pos": 4,
+    "points_pos": {"A": 5, "B": -3},
+    "reponses_exactes": {"A": 25, "B": -15}
+  },
+  {
+    "id": 3,
     "val_ref": "0,1",
     "ref_pos": 2,
-    "points_pos": {"A": -5, "B": -3, "C": 5, "D": 9},
-    "reponses_exactes": {"A": -0.25, "B": -0.15, "C": 0.25, "D": 0.45}
+    "points_pos": {"A": -9, "B": 4},
+    "reponses_exactes": {"A": -0.45, "B": 0.2}
+  },
+{
+    "id": 4,
+    "val_ref": "0.03",
+    "ref_pos": 3,
+    "points_pos": {"A": -7, "B": 4},
+    "reponses_exactes": {"A": -0.07, "B": 0.04}
   },
   {
-    "id": 49,
-    "val_ref": "0,01",
-    "ref_pos": 2,
-    "points_pos": {"A": -9, "B": -4, "C": 3, "D": 7},
-    "reponses_exactes": {"A": -0.045, "B": -0.02, "C": 0.015, "D": 0.035}
+    "id": 5,
+    "val_ref": "1",
+    "ref_pos": 5,
+    "points_pos": {"A": -9, "B": 4},
+    "reponses_exactes": {"A": -2.2, "B": 0.2}
   }
 ]

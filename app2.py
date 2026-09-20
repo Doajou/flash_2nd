@@ -7,19 +7,14 @@ from droitereel import creer_droite_reels
 st.set_page_config(page_title="Évaluation - Droite des Réels", layout="wide")
 
 # ---------------------------------------------------------
-# CHARGEMENT ET SÉCURISATION DU FICHIER JSON
+# CHARGEMENT DU JSON
 # ---------------------------------------------------------
 @st.cache_data
 def load_questions():
     try:
         with open("questions.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-            # Ne conserve que les exercices valides avec les bonnes clés
-            valid_ex = []
-            for ex in data:
-                if "points_pos" in ex and "val_ref" in ex and "reponses_exactes" in ex:
-                    valid_ex.append(ex)
-            return valid_ex
+            return [ex for ex in data if "points_pos" in ex and "val_ref" in ex and "reponses_exactes" in ex]
     except Exception as e:
         st.error(f"Erreur de lecture du fichier questions.json : {e}")
         return []
@@ -67,7 +62,7 @@ if mode == "Smartphone Élève":
         
         if already_submitted and already_submitted in db["responses"]:
             score_eleve = db["scores"][already_submitted]
-            st.success(f"Score total pour **{already_submitted}** : **{score_eleve} pts**")
+            st.success(f"Note finale pour **{already_submitted}** : **{score_eleve} / 5**")
             st.divider()
             
             user_res = db["responses"][already_submitted]
@@ -85,35 +80,32 @@ if mode == "Smartphone Élève":
                 resp_eleve = user_res.get(i, {})
                 exactes = ex.get("reponses_exactes", {})
                 
-                if exactes:
-                    cols = st.columns(len(exactes))
-                    for idx, (lettre, vrai) in enumerate(exactes.items()):
-                        val_eleve = resp_eleve.get(lettre, 0.0)
-                        ecart = abs(val_eleve - vrai)
-                        
-                        # Attribution de 25 points par bonne réponse (tolérance légère pour arrondis)
-                        pts = 25 if ecart < 1e-4 else 0
-                        
-                        with cols[idx]:
-                            st.metric(f"Point {lettre}", f"{val_eleve}", delta=f"Vrai: {vrai}")
-                            if pts > 0:
-                                st.caption("✅ Correct (+25 pts)")
-                            else:
-                                st.caption("❌ Incorrect (0 pt)")
+                cols = st.columns(len(exactes))
+                for idx, (lettre, vrai) in enumerate(exactes.items()):
+                    val_eleve = resp_eleve.get(lettre, 0.0)
+                    ecart = abs(val_eleve - vrai)
+                    pts = 0.5 if ecart < 1e-4 else 0.0
+                    
+                    with cols[idx]:
+                        st.metric(f"Point {lettre}", f"{val_eleve}", delta=f"Vrai: {vrai}")
+                        if pts > 0:
+                            st.caption("✅ Correct (+0.5 pt)")
+                        else:
+                            st.caption("❌ Incorrect (0 pt)")
                 st.divider()
         else:
             st.info("La correction est affichée au tableau.")
 
-    # CAS 2 : ÉLÈVE EN ATTENTE DE CORRECTION
+    # CAS 2 : ÉLÈVE EN ATTENTE DE CORRECTION (NOTE MASQUÉE)
     elif already_submitted and already_submitted in db["scores"]:
         st.success(f"✅ Réponses enregistrées pour **{already_submitted}** !")
-        st.info(f"Votre score actuel : **{db['scores'][already_submitted]} pts**.")
+        st.info("Vos réponses ont bien été transmises. La note s'affichera dès que la correction sera lancée.")
         waiting_screen_fragment()
 
     # CAS 3 : FORMULAIRE DE SAISIE
     else:
         if not EXERCICES:
-            st.warning("⚠️ Aucune question chargée. Vérifiez le fichier questions.json.")
+            st.warning("⚠️ Aucune question chargée.")
         else:
             pseudo = st.text_input("Entrez votre Prénom :", key="user_pseudo")
             
@@ -124,7 +116,6 @@ if mode == "Smartphone Élève":
                     st.warning(f"⚠️ Le prénom **{pseudo_clean}** a déjà envoyé ses réponses.")
                 else:
                     st.subheader(f"Bonjour {pseudo_clean} !")
-                    
                     user_answers = {}
                     
                     for i, ex in enumerate(EXERCICES):
@@ -137,7 +128,6 @@ if mode == "Smartphone Élève":
                         )
                         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                         
-                        # Saisie des réponses par l'élève
                         answers_ex = {}
                         points_pos = ex.get("points_pos", {})
                         
@@ -158,15 +148,14 @@ if mode == "Smartphone Élève":
                         st.divider()
                     
                     if st.button("Envoyer mes réponses 🚀", type="primary"):
-                        score_total = 0
+                        score_total = 0.0
                         
                         for i, ex in enumerate(EXERCICES):
                             exactes = ex.get("reponses_exactes", {})
                             for lettre, vrai in exactes.items():
                                 est = user_answers[i].get(lettre, 0.0)
-                                ecart = abs(est - vrai)
-                                if ecart < 1e-4:
-                                    score_total += 25
+                                if abs(est - vrai) < 1e-4:
+                                    score_total += 0.5
                         
                         db["scores"][pseudo_clean] = score_total
                         db["responses"][pseudo_clean] = user_answers
@@ -182,9 +171,9 @@ else:
     if db["scores"]:
         df = pd.DataFrame(
             list(db["scores"].items()), 
-            columns=["Élève", "Score Total"]
+            columns=["Élève", "Note (/5)"]
         )
-        df = df.sort_values(by="Score Total", ascending=False).reset_index(drop=True)
+        df = df.sort_values(by="Note (/5)", ascending=False).reset_index(drop=True)
         df.index += 1
         st.dataframe(df, use_container_width=True, height=300)
     else:

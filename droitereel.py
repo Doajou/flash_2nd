@@ -1,9 +1,6 @@
 import plotly.graph_objects as go
 
 def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref_pos=2):
-    """
-    Génère une droite des réels interactive et zoomable pour mobile.
-    """
     fig = go.Figure()
 
     # 1. Axe principal avec flèche à droite
@@ -18,7 +15,7 @@ def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref
         arrowcolor="gray"
     )
 
-    # 2. Sous-graduations (petits traits verticaux)
+    # 2. Sous-graduations
     for x in range(min_sub, max_sub + 1, step_sub):
         fig.add_shape(
             type="line",
@@ -26,7 +23,7 @@ def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref
             line=dict(color="gray", width=1.5)
         )
 
-    # 3. Étiquettes sous la droite (Origine 0 + Valeur de référence)
+    # 3. Étiquettes sous la droite
     fig.add_annotation(
         x=0, y=-0.35, text="<b>0</b>",
         showarrow=False, font=dict(size=15, color="gray")
@@ -36,7 +33,7 @@ def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref
         showarrow=False, font=dict(size=15, color="gray")
     )
 
-    # 4. Points à placer (Traits rouges + Lettres au-dessus)
+    # 4. Points à placer
     for lettre, pos in points.items():
         fig.add_shape(
             type="line",
@@ -48,22 +45,25 @@ def creer_droite_reels(points, val_ref, min_sub=-10, max_sub=10, step_sub=1, ref
             showarrow=False, font=dict(size=16, color="#E63946")
         )
 
-    # Configuration du zoom tactile
+    # Configuration du zoom tactile fonctionnel
     fig.update_layout(
         height=200,
         margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        dragmode="pan",  # Permet de faire glisser la droite au doigt
+        dragmode="pan",
         xaxis=dict(
-            visible=False,
+            visible=True,        # ✅ Doit être True pour que Plotly autorise le pinch-zoom mobile
+            showticklabels=False,# Masque les chiffres automatiques
+            showgrid=False,      # Masque la grille
+            zeroline=False,      # Masque la ligne 0 automatique
             range=[min_sub - 1, max_sub + 1.5],
-            fixedrange=False  # ✅ AUTORISE LE ZOOM / DEPLACEMENT SUR X
+            fixedrange=False     # Autorise le zoom
         ),
         yaxis=dict(
             visible=False,
             range=[-0.8, 0.8],
-            fixedrange=True  # Bloque l'axe Y pour ne pas déformer la droite en hauteur
+            fixedrange=True      # Bloque la hauteur
         )
     )
 

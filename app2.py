@@ -75,7 +75,7 @@ if mode == "Smartphone Élève":
                     val_ref=ex.get("val_ref", "1"), 
                     ref_pos=ex.get("ref_pos", 2)
                 )
-                st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True, 'displayModeBar': False})
+                st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True, 'displayModeBar': False, 'doubleClick': "reset"})
                 
                 resp_eleve = user_res.get(i, {})
                 exactes = ex.get("reponses_exactes", {})
